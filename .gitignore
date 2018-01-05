@@ -1,6 +1,13 @@
 .gradle
+/build/
+
 .idea
 gradle
 out
-build/
+/bin/
+
+.classpath
+.project
+.settings/
+logs/
 *.iml
