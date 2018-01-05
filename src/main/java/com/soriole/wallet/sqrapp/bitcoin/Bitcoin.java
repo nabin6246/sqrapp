@@ -35,7 +35,7 @@ public class Bitcoin implements CryptoCurrency {
         } catch (ValidationException e) {
             log.error("Could not create bitcoin private key", e);
         }
-        return null;
+        return new byte[0];
     }
 
     @Override
@@ -46,7 +46,7 @@ public class Bitcoin implements CryptoCurrency {
         } catch (ValidationException e) {
             log.error("Could not create bitcoin private key[{}]", index, e);
         }
-        return null;
+        return new byte[0];
     }
 
     @Override
@@ -57,7 +57,7 @@ public class Bitcoin implements CryptoCurrency {
         } catch (ValidationException e) {
             log.error("Could not create public key from private key", e);
         }
-        return null;
+        return new byte[0];
     }
 
     public String address(byte[] pubBytes){

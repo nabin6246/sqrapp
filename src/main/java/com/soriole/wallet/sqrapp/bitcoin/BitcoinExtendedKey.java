@@ -28,6 +28,8 @@ import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.generators.SCrypt;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -39,8 +41,11 @@ import java.math.BigInteger;
 import java.security.*;
 
 public class BitcoinExtendedKey {
+    private static final Logger log = LoggerFactory.getLogger(BitcoinExtendedKey.class);
+    private static final String SECURITY_PROVIDER = "BC";
     private static final SecureRandom rnd = new SecureRandom();
     private static final X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+    private static final String HMAC_SHA512 = "HmacSHA512";
 
     private static final byte[] xprv = new byte[]{0x04, (byte) 0x88, (byte) 0xAD, (byte) 0xE4};
     private static final byte[] xpub = new byte[]{0x04, (byte) 0x88, (byte) 0xB2, (byte) 0x1E};
@@ -114,10 +119,11 @@ public class BitcoinExtendedKey {
     private BitcoinExtendedKey generateKey(int sequence) throws ValidationException {
         try {
             if ((sequence & 0x80000000) != 0 && master.getPrivate() == null) {
-                throw new ValidationException("need private key for private generation");
+                throw new ValidationException(EXCEPTION_MESSAGE_NO_PRIVATE_KEY);
             }
-            Mac mac = Mac.getInstance("HmacSHA512", "BC");
-            SecretKey key = new SecretKeySpec(chainCode, "HmacSHA512");
+
+            Mac mac = Mac.getInstance(HMAC_SHA512, SECURITY_PROVIDER);
+            SecretKey key = new SecretKeySpec(chainCode, HMAC_SHA512);
             mac.init(key);
 
             byte[] extended;
@@ -144,27 +150,23 @@ public class BitcoinExtendedKey {
 
             BigInteger m = new BigInteger(1, l);
             if (m.compareTo(curve.getN()) >= 0) {
-                throw new ValidationException("This is rather unlikely, but it did just happen");
+                throw new ValidationException(EXCEPTION_MESSAGE_UNLIKELY);
             }
             if (master.getPrivate() != null) {
                 BigInteger k = m.add(new BigInteger(1, master.getPrivate())).mod(curve.getN());
                 if (k.equals(BigInteger.ZERO)) {
-                    throw new ValidationException("This is rather unlikely, but it did just happen");
+                    throw new ValidationException(EXCEPTION_MESSAGE_UNLIKELY);
                 }
                 return new BitcoinExtendedKey(new ECKeyPair(k, true), r, depth, parent, sequence);
             } else {
                 ECPoint q = curve.getG().multiply(m).add(curve.getCurve().decodePoint(pub));
                 if (q.isInfinity()) {
-                    throw new ValidationException("This is rather unlikely, but it did just happen");
+                    throw new ValidationException(EXCEPTION_MESSAGE_UNLIKELY);
                 }
-                pub = q.getEncoded(true);//new ECPoint.Fp(curve.getCurve(), q.getX(), q.getY(), true).getEncoded();
+                pub = q.getEncoded(true);
                 return new BitcoinExtendedKey(ECKeyPair.publicOnly(pub, true), r, depth, parent, sequence);
             }
-        } catch (NoSuchAlgorithmException e) {
-            throw new ValidationException(e);
-        } catch (NoSuchProviderException e) {
-            throw new ValidationException(e);
-        } catch (InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
             throw new ValidationException(e);
         }
     }
@@ -178,23 +180,19 @@ public class BitcoinExtendedKey {
 
     public static BitcoinExtendedKey create(byte[] seed) throws ValidationException {
         try {
-            Mac mac = Mac.getInstance("HmacSHA512", "BC");
-            SecretKey seedkey = new SecretKeySpec(BITCOIN_SEED, "HmacSHA512");
+            Mac mac = Mac.getInstance(HMAC_SHA512, SECURITY_PROVIDER);
+            SecretKey seedkey = new SecretKeySpec(BITCOIN_SEED, HMAC_SHA512);
             mac.init(seedkey);
             byte[] lr = mac.doFinal(seed);
             byte[] l = Arrays.copyOfRange(lr, 0, 32);
             byte[] r = Arrays.copyOfRange(lr, 32, 64);
             BigInteger m = new BigInteger(1, l);
             if (m.compareTo(curve.getN()) >= 0) {
-                throw new ValidationException("This is rather unlikely, but it did just happen");
+                throw new ValidationException(EXCEPTION_MESSAGE_UNLIKELY);
             }
             ECKeyPair keyPair = new ECKeyPair(l, true);
             return new BitcoinExtendedKey(keyPair, r, 0, 0, 0);
-        } catch (NoSuchAlgorithmException e) {
-            throw new ValidationException(e);
-        } catch (NoSuchProviderException e) {
-            throw new ValidationException(e);
-        } catch (InvalidKeyException e) {
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
             throw new ValidationException(e);
         }
     }
@@ -276,6 +274,7 @@ public class BitcoinExtendedKey {
                 out.write(master.getPublic());
             }
         } catch (IOException e) {
+            log.error("Error on serializing extended key", e);
         }
         return ByteUtils.toBase58WithChecksum(out.toByteArray());
     }
@@ -286,32 +285,18 @@ public class BitcoinExtendedKey {
             SecretKeySpec keyspec = new SecretKeySpec(key, "AES");
             if (encrypted.length == 32) {
                 // asssume encrypted is seed
-                Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", "BC");
+                Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding", SECURITY_PROVIDER);
                 cipher.init(Cipher.DECRYPT_MODE, keyspec);
                 return create(cipher.doFinal(encrypted));
             } else {
                 // assume encrypted serialization of a key
-                Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+                Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", SECURITY_PROVIDER);
                 byte[] iv = Arrays.copyOfRange(encrypted, 0, 16);
                 byte[] data = Arrays.copyOfRange(encrypted, 16, encrypted.length);
                 cipher.init(Cipher.DECRYPT_MODE, keyspec, new IvParameterSpec(iv));
                 return BitcoinExtendedKey.parse(new String(cipher.doFinal(data)));
             }
-        } catch (UnsupportedEncodingException e) {
-            throw new ValidationException(e);
-        } catch (IllegalBlockSizeException e) {
-            throw new ValidationException(e);
-        } catch (BadPaddingException e) {
-            throw new ValidationException(e);
-        } catch (InvalidKeyException e) {
-            throw new ValidationException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new ValidationException(e);
-        } catch (NoSuchProviderException e) {
-            throw new ValidationException(e);
-        } catch (NoSuchPaddingException e) {
-            throw new ValidationException(e);
-        } catch (InvalidAlgorithmParameterException e) {
+        } catch (UnsupportedEncodingException | IllegalBlockSizeException | BadPaddingException | InvalidKeyException | NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
             throw new ValidationException(e);
         }
     }
@@ -320,7 +305,7 @@ public class BitcoinExtendedKey {
         try {
             byte[] key = SCrypt.generate(passphrase.getBytes("UTF-8"), BITCOIN_SEED, 16384, 8, 8, 32);
             SecretKeySpec keyspec = new SecretKeySpec(key, "AES");
-            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", "BC");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding", SECURITY_PROVIDER);
             cipher.init(Cipher.ENCRYPT_MODE, keyspec);
             byte[] iv = cipher.getIV();
             byte[] c = cipher.doFinal(serialize(production).getBytes());
@@ -334,4 +319,7 @@ public class BitcoinExtendedKey {
         }
     }
 
+
+    private static final String EXCEPTION_MESSAGE_UNLIKELY = "This is rather unlikely, but it did just happen";
+    private static final String EXCEPTION_MESSAGE_NO_PRIVATE_KEY = "Need private key for private generation";
 }

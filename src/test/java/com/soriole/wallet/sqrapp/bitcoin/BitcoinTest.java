@@ -22,6 +22,7 @@ public class BitcoinTest {
 
         BigInteger privateKey = new BigInteger(privateKeyHex, 16);
         String computedWif = instance.serializeWIF(ECKeyPair.create(privateKey));
+        System.out.println(computedWif);
         assertEquals(privateKeyWif, computedWif);
 
         ECKeyPair keyPair = instance.parseWIF(privateKeyWif);
@@ -39,6 +40,7 @@ public class BitcoinTest {
 
         byte[] pubBytes = keyPair.getPublic();
         String computedAddress = instance.address(pubBytes);
+        System.out.println(computedAddress);
         assertEquals(address, computedAddress);
     }
 }
