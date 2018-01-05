@@ -3,6 +3,11 @@
 
 .idea
 gradle
+*.class
+.project
+.classpath
+bin/
+tmp/
 out
 /bin/
 
