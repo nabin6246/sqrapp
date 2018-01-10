@@ -14,6 +14,8 @@ public class Bitcoin implements CryptoCurrency {
 
     private SecureRandom random = new SecureRandom();
 
+    protected byte networkVersion=0x00;
+    protected  byte privateKeyPrefix=(byte)0x80;
     @Override
     public byte[] newSeed() {
         byte[] seed = new byte[32];
@@ -69,7 +71,7 @@ public class Bitcoin implements CryptoCurrency {
         }
         byte[] keyHash = ByteUtils.keyHash(pubBytes);
         byte[] keyHashWithVersion = new byte[keyHash.length + 1];
-        keyHashWithVersion[0] = 0x00; // version byte
+        keyHashWithVersion[0] = networkVersion; // version byte
         System.arraycopy(keyHash, 0, keyHashWithVersion, 1, keyHash.length);
         return ByteUtils.toBase58WithChecksum(keyHashWithVersion);
     }
@@ -98,7 +100,7 @@ public class Bitcoin implements CryptoCurrency {
         if (compressed) {
             byte[] encoded = new byte[privateKey.length + 6];
             byte[] ek = new byte[privateKey.length + 2];
-            ek[0] = (byte) 0x80;
+            ek[0] = privateKeyPrefix;
             System.arraycopy(privateKey, 0, ek, 1, privateKey.length);
             ek[privateKey.length + 1] = 0x01;
             byte[] hash = ByteUtils.hash(ek);
@@ -108,7 +110,7 @@ public class Bitcoin implements CryptoCurrency {
         } else {
             byte[] encoded = new byte[privateKey.length + 5];
             byte[] ek = new byte[privateKey.length + 1];
-            ek[0] = (byte) 0x80;
+            ek[0] = privateKeyPrefix;
             System.arraycopy(privateKey, 0, ek, 1, privateKey.length);
             byte[] hash = ByteUtils.hash(ek);
             System.arraycopy(ek, 0, encoded, 0, ek.length);

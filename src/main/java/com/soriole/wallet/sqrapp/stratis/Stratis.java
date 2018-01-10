@@ -1,30 +1,11 @@
 package com.soriole.wallet.sqrapp.stratis;
 
 import com.soriole.wallet.sqrapp.CryptoCurrency;
+import com.soriole.wallet.sqrapp.bitcoin.Bitcoin;
 
-public class Stratis implements CryptoCurrency{
-    @Override
-    public byte[] newSeed() {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] newPrivateKey() {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] newPrivateKey(byte[] seed) {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] newPrivateKey(byte[] seed, int index) {
-        return new byte[0];
-    }
-
-    @Override
-    public byte[] publicKey(byte[] privateKey) {
-        return new byte[0];
+public class Stratis extends Bitcoin{
+    public Stratis(){
+        this.networkVersion=(byte)0x3f;
+        this.privateKeyPrefix=(byte)0xbf;
     }
 }
