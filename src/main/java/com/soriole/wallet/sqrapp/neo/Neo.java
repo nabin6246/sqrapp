@@ -20,7 +20,7 @@ public class Neo implements CryptoCurrency {
 
     static ECDomainParameters secp25641Curve;
 
-    // The curve for Neo wallet is secp25641
+    // The CURVE_PARAMS for Neo wallet is secp25641
     static {
         X9ECParameters curveParams = CustomNamedCurves.getByName("secp256r1");
         if (curveParams==null){
@@ -65,7 +65,7 @@ public class Neo implements CryptoCurrency {
      */
     @Override
     public byte[] publicKey(byte[] privateKey) {
-        // get corresponding coordinate for given privatekey on the curve
+        // get corresponding coordinate for given privatekey on the CURVE_PARAMS
         ECPoint point = Neo.secp25641Curve.getG().multiply(new BigInteger(1, privateKey));
 
         // return coordinate as byte array.

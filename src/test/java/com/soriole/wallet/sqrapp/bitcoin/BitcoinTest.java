@@ -1,7 +1,10 @@
 package com.soriole.wallet.sqrapp.bitcoin;
 
 import com.soriole.wallet.lib.ECKeyPair;
+import com.soriole.wallet.lib.KeyGenerator;
 import com.soriole.wallet.lib.exceptions.ValidationException;
+import org.bouncycastle.asn1.sec.SECNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -10,9 +13,13 @@ import static org.junit.Assert.assertEquals;
 
 public class BitcoinTest {
     private Bitcoin instance;
+    KeyGenerator keyGenerator;
 
     public BitcoinTest() {
         instance = new Bitcoin();
+        X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+        String BITCOIN_SEED = "Bitcoin seed";
+        keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
     }
 
     @Test
@@ -21,11 +28,11 @@ public class BitcoinTest {
         String privateKeyWif = "5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ";
 
         BigInteger privateKey = new BigInteger(privateKeyHex, 16);
-        String computedWif = instance.serializeWIF(ECKeyPair.create(privateKey));
+        String computedWif = instance.serializeWIF(keyGenerator.createECKeyPair(privateKey));
         System.out.println(computedWif);
         assertEquals(privateKeyWif, computedWif);
 
-        ECKeyPair keyPair = instance.parseWIF(privateKeyWif);
+        KeyGenerator.ECKeyPair keyPair = instance.parseWIF(privateKeyWif);
         BigInteger privateKeyFromWif = keyPair.getPrivateKey();
         assertEquals(privateKey, privateKeyFromWif);
     }

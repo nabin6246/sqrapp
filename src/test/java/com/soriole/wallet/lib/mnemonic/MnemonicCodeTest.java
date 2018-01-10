@@ -16,7 +16,7 @@ public class MnemonicCodeTest {
     private static final Logger log = LoggerFactory.getLogger(MnemonicCodeTest.class);
     private final SecureRandom random = new SecureRandom();
 
-    private static final String BIP39_ENGLISH_RESOURCE_NAME = "mnemonic/wordlist/english.txt";
+    private static final String BIP39_ENGLISH_RESOURCE_NAME = "mnemonic/mnemonic-english.txt";
     private static final String BIP39_ENGLISH_SHA256 = "ad90bf3beb7b0eb7e5acd74727dc0da96e0a280a258354e7293fb7e211ac03db";
 
     @Test

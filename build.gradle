@@ -20,4 +20,6 @@ dependencies {
     testCompile 'org.json:json:20090211'
     compile 'commons-io:commons-io:2.6'
     compile 'commons-codec:commons-codec:1.8'
+    compile group: 'org.whispersystems', name: 'curve25519-java', version: '0.2.3'
+    compile group: 'com.wavesplatform', name: 'wavesj', version: '0.2'
 }

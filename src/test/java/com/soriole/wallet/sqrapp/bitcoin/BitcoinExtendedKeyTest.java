@@ -1,8 +1,10 @@
 package com.soriole.wallet.sqrapp.bitcoin;
 
 import com.soriole.wallet.lib.ByteUtils;
-import com.soriole.wallet.lib.ECKeyPair;
+import com.soriole.wallet.lib.KeyGenerator;
 import com.soriole.wallet.lib.exceptions.ValidationException;
+import org.bouncycastle.asn1.sec.SECNamedCurves;
+import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,10 +23,6 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertTrue;
 
-/**
- * Adapted from https://github.com/bitsofproof/supernode/blob/1.1/api/src/main/java/com/bitsofproof/supernode/api/ExtendedKey.java
- */
-
 public class BitcoinExtendedKeyTest {
     private final SecureRandom random = new SecureRandom();
 
@@ -35,12 +33,18 @@ public class BitcoinExtendedKeyTest {
 
     @Test
     public void testGenerator() throws ValidationException {
-        BitcoinExtendedKey ekprivate = BitcoinExtendedKey.createNew();
-        BitcoinExtendedKey ekpublic = new BitcoinExtendedKey(ECKeyPair.publicOnly(ekprivate.getMaster().getPublic(), true), ekprivate.getChainCode(), 0, 0, 0);
+        X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+        String BITCOIN_SEED = "Bitcoin seed";
+        KeyGenerator keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
 
-        for (int i = 0; i < 20; ++i) {
-            ECKeyPair fullControl = ekprivate.getKey(i);
-            ECKeyPair readOnly = ekpublic.getKey(i);
+        KeyGenerator.ExtendedKey ekPrivate = keyGenerator.createExtendedKey();
+        KeyGenerator.ExtendedKey ekPublic = keyGenerator.publicExtendedKey(ekPrivate);
+
+
+        for (int j = 0; j < 20; j++) {
+
+            KeyGenerator.ECKeyPair fullControl = ekPrivate.getKey(j);
+            KeyGenerator.ECKeyPair readOnly = ekPublic.getKey(j);
 
             assertTrue(Arrays.equals(fullControl.getPublic(), readOnly.getPublic()));
             assertTrue(Arrays.equals(fullControl.getAddress(), readOnly.getAddress()));
@@ -50,8 +54,8 @@ public class BitcoinExtendedKeyTest {
 
             byte[] signature = fullControl.sign(toSign);
             assertTrue(readOnly.verify(toSign, signature));
-        }
 
+        }
     }
 
     private static final ThreadMXBean mxb = ManagementFactory.getThreadMXBean();
@@ -72,51 +76,67 @@ public class BitcoinExtendedKeyTest {
 
     @Test
     public void testBip32() throws IOException, JSONException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, ValidationException {
-        JSONArray tests = readObjectArray("BIP32.json");
+        JSONArray tests = readObjectArray("wallets/BitcoinWalletBIP32.json");
         for (int i = 0; i < tests.length(); ++i) {
             JSONObject test = tests.getJSONObject(i);
 
-            BitcoinExtendedKey ekprivate = BitcoinExtendedKey.create(ByteUtils.fromHex(test.getString("seed")));
-            BitcoinExtendedKey ekpublic = ekprivate.getReadOnly();
+            X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+            String BITCOIN_SEED = "Bitcoin seed";
+            KeyGenerator keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
 
-            assertTrue(ekprivate.serialize(true).equals(test.get("private")));
-            assertTrue(ekpublic.serialize(true).equals(test.get("public")));
+            KeyGenerator.ExtendedKey ekPrivate = keyGenerator.createExtendedKey(ByteUtils.fromHex(test.getString("seed")));
+            KeyGenerator.ExtendedKey ekPublic = ekPrivate.getReadOnly();
+
+            assertTrue(ekPrivate.serialize(true).equals(test.get("private")));
+            assertTrue(ekPublic.serialize(true).equals(test.get("public")));
 
             JSONArray derived = test.getJSONArray("derived");
             for (int j = 0; j < derived.length(); ++j) {
                 JSONObject derivedTest = derived.getJSONObject(j);
                 JSONArray locator = derivedTest.getJSONArray("locator");
-                BitcoinExtendedKey ek = ekprivate;
-                BitcoinExtendedKey ep = ekpublic;
+
+                KeyGenerator.ExtendedKey eK = ekPrivate;
+                KeyGenerator.ExtendedKey eP = ekPublic;
+
                 for (int k = 0; k < locator.length(); ++k) {
                     JSONObject c = locator.getJSONObject(k);
                     if (!c.getBoolean("private")) {
-                        ek = ek.getChild(c.getInt("sequence"));
+                        eK = eK.getChild(c.getInt("sequence"));
                     } else {
-                        ek = ek.getChild(c.getInt("sequence") | 0x80000000);
+                        eK = eK.getChild(c.getInt("sequence") | 0x80000000);
                     }
-                    ep = ek.getReadOnly();
+                    eP = eK.getReadOnly();
                 }
 
-                assertTrue(ek.serialize(true).equals(derivedTest.getString("private")));
-                assertTrue(ep.serialize(true).equals(derivedTest.getString("public")));
+                assertTrue(eK.serialize(true).equals(derivedTest.getString("private")));
+                assertTrue(eP.serialize(true).equals(derivedTest.getString("public")));
             }
         }
     }
 
     @Test
     public void testBip32Passphrase() throws ValidationException, JSONException, IOException {
-        JSONArray tests = readObjectArray("PassphraseKey.json");
+        JSONArray tests = readObjectArray("wallets/BitcoinWalletEncryted.json");
+
+        X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+        String BITCOIN_SEED = "Bitcoin seed";
+        KeyGenerator keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
+
         for (int i = 0; i < tests.length(); ++i) {
             JSONObject test = tests.getJSONObject(i);
-            BitcoinExtendedKey key = BitcoinExtendedKey.createFromPassphrase(test.getString("passphrase"), ByteUtils.fromHex(test.getString("seed")));
+
+            KeyGenerator.ExtendedKey key = keyGenerator.createExtendedKeyFromPassphrase(test.getString("passphrase"), ByteUtils.fromHex(test.getString("seed")));
             assertTrue(key.serialize(true).equals(test.get("key")));
         }
     }
 
     @Test
     public void testECDSASpeed() throws ValidationException {
-        ECKeyPair key = ECKeyPair.createNew(true);
+        X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
+        String BITCOIN_SEED = "Bitcoin seed";
+        KeyGenerator keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
+
+        KeyGenerator.ECKeyPair key = keyGenerator.createECKeyPair(true);
         byte[] data = new byte[32];
         random.nextBytes(data);
         byte[] signature = key.sign(data);

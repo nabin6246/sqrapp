@@ -5,7 +5,7 @@ import org.nem.core.utils.ByteUtils;
 import java.io.Serializable;
 
 /**
- * A point on the ED25519 curve which represents a group element.
+ * A point on the ED25519 CURVE_PARAMS which represents a group element.
  * This implementation is based on the ref10 implementation of SUPERCOP.
  * <br>
  * Literature:
@@ -243,7 +243,7 @@ public class Ed25519GroupElement implements Serializable {
 	//endregion
 
 	/**
-	 * Converts the group element to an encoded point on the curve.
+	 * Converts the group element to an encoded point on the CURVE_PARAMS.
 	 *
 	 * @return The encoded point as byte array.
 	 */
@@ -911,9 +911,9 @@ public class Ed25519GroupElement implements Serializable {
 	}
 
 	/**
-	 * Verify that the group element satisfies the curve equation.
+	 * Verify that the group element satisfies the CURVE_PARAMS equation.
 	 *
-	 * @return true if the group element satisfies the curve equation, false otherwise.
+	 * @return true if the group element satisfies the CURVE_PARAMS equation, false otherwise.
 	 */
 	public boolean satisfiesCurveEquation() {
 		switch (this.coordinateSystem) {
