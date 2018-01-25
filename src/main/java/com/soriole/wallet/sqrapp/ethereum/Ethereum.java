@@ -4,8 +4,16 @@ import com.soriole.wallet.lib.ECKeyPair;
 import com.soriole.wallet.sqrapp.CryptoCurrency;
 import org.ethereum.crypto.ECKey;
 import org.spongycastle.util.encoders.Hex;
+import org.web3j.abi.datatypes.Address;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.http.HttpService;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.security.SecureRandom;
+import java.util.concurrent.ExecutionException;
 
 public class Ethereum implements CryptoCurrency {
     private final int seedSize = 32;
@@ -49,5 +57,19 @@ public class Ethereum implements CryptoCurrency {
 
     public String getAddress(byte[] publicKey) {
         return Hex.toHexString(ECKey.computeAddress(publicKey));
+    }
+    
+    /**
+     * get balace(biginteger) in wei (10^18 decimal places)
+     * @param address ethereum address in 0x format
+     * @throws ExecutionException 
+     * @throws InterruptedException 
+     * 
+     */
+    public static BigInteger getBalance(String address) throws InterruptedException, ExecutionException {
+    		String WEB3_URL = "https://mainnet.infura.io/";
+    		Web3j web3j = Web3j.build(new HttpService(WEB3_URL));
+			EthGetBalance ethGetBalance = web3j.ethGetBalance(address, DefaultBlockParameterName.LATEST).sendAsync().get();
+			return ethGetBalance.getBalance();
     }
 }

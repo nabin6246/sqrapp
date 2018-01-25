@@ -22,4 +22,6 @@ dependencies {
     compile 'commons-codec:commons-codec:1.8'
     compile group: 'org.whispersystems', name: 'curve25519-java', version: '0.2.3'
     compile group: 'com.wavesplatform', name: 'wavesj', version: '0.2'
+    // https://mvnrepository.com/artifact/javax.json/javax.json-api
+	compile group: 'javax.json', name: 'javax.json-api', version: '1.0-b01'
 }
