@@ -88,4 +88,10 @@ public class LitecoinTest {
         assertEquals(address, computedAddress);
     }
 
+    @Test
+    public void testBalance(){
+        String address= "XhHNMemRdtdSuKhZDUPd8kijGCqEoquEHo";
+        assertEquals(BigInteger.ZERO,litecoin.getBalance(address));
+    }
+
 }
