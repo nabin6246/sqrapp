@@ -55,8 +55,8 @@ public class DashTest {
 
     @Test
     public void testAddressSample2() throws ValidationException {
-        String address = "Xo1JmghCVibaz9aSgsW35Y9KFxboJYDDPy";
-        String privateKeyWif = "7rJUa2jvjMntHsDTCN4bNyyDPBCaDwHWRKExK2JJHgySeGaFirT";
+        String address = "1eZySs4tSSsa73w4xKextn2cKekgDKrN5";
+        String privateKeyWif = "KyFZArTqKFrpo4Ek6Dcgme1xKGJnFvE5k8zNM1ajG8Mjpbq1xeXE";
 
         KeyGenerator.ECKeyPair keyPair = dash.parseWIF(privateKeyWif);
         BigInteger privateKey = keyPair.getPrivateKey();
@@ -64,6 +64,12 @@ public class DashTest {
         byte[] pubBytes = keyPair.getPublic();
         String computedAddress = dash.address(pubBytes);
         assertEquals(address, computedAddress);
+    }
+
+    @Test
+    public void testBalance(){
+        String address= "Xj81VS3DNfGGUiCjfSHyRmMK98JpewSxcV";
+        assertEquals(BigInteger.ZERO,dash.getBalance(address));
     }
 
 }
