@@ -10,7 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.utils.Numeric;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.URL;
 import java.security.SecureRandom;
 
 public class Litecoin implements CryptoCurrency {
@@ -195,6 +200,49 @@ public class Litecoin implements CryptoCurrency {
                 throw new ValidationException("Checksum mismatch");
             }
         }
+    }
+
+    BigInteger getBalance(String address) {
+        BigInteger balance = null;
+        long decimalPoints=100000000;
+        try {
+
+            URL url = new URL("https://chainz.cryptoid.info/ltc/api.dws?a=" + address + "&q=getbalance&key=c9b1545fb0e6");
+
+            System.out.println(url.toString());
+            //make https call
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent","application/json");
+            conn.connect();
+
+            // make sure the response is success
+            if (conn.getResponseCode() != 200) {
+                System.err.println("Response error. HTTP error code: "+conn.getResponseCode());
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            //read the response and cast it to string
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+            String output;
+            StringBuilder sb = new StringBuilder();
+            while ((output = br.readLine()) != null) {
+                sb.append(output);
+            }
+            String response = sb.toString();
+            conn.disconnect();
+
+            double userBalance = Double.valueOf(response);
+            userBalance*=decimalPoints;
+
+            balance = BigDecimal.valueOf(userBalance).toBigInteger();
+            System.out.println(balance);
+
+        } catch (Exception e) {
+            System.out.println("Error getting balance");
+        }
+        return balance;
     }
 
 }

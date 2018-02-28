@@ -1,4 +1,4 @@
-package com.soriole.wallet.sqrapp.stratis;
+package com.soriole.wallet.sqrapp.counterparty;
 
 import com.soriole.wallet.lib.ByteUtils;
 import com.soriole.wallet.lib.KeyGenerator;
@@ -6,9 +6,9 @@ import com.soriole.wallet.lib.exceptions.ValidationException;
 import com.soriole.wallet.sqrapp.CryptoCurrency;
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.web3j.utils.Numeric;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
@@ -18,20 +18,20 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.security.SecureRandom;
 
-public class Stratis implements CryptoCurrency {
-    private static final Logger log = LoggerFactory.getLogger(com.soriole.wallet.sqrapp.litecoin.Litecoin.class);
+public class Counterparty implements CryptoCurrency {
+    private static final Logger log = LoggerFactory.getLogger(Counterparty.class);
     public static final X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
-    public static final String SEED_PREFIX = "Stratis seed";
-
-    private byte networkVersion = (byte)0x3f;
-    private byte privateKeyPrefix = (byte)0xbf;
+    public static final String SEED_PREFIX = "Bitcoin seed";
 
     private SecureRandom random = new SecureRandom();
     private KeyGenerator keyGenerator;
 
-    public Stratis() {
+    public Counterparty() {
         keyGenerator = new KeyGenerator(curve, SEED_PREFIX);
     }
+
+    protected byte networkVersion = 0x00;
+    protected byte privateKeyPrefix = (byte) 0x80;
 
     @Override
     public byte[] newSeed() {
@@ -45,10 +45,6 @@ public class Stratis implements CryptoCurrency {
         return keyGenerator.createExtendedKey().getMaster().getPrivate();
     }
 
-    public String newPrivateKeyWIF() {
-        return ByteUtils.toBase58(bytesWIF(keyGenerator.createExtendedKey().getMaster()));
-    }
-
     @Override
     public byte[] newPrivateKey(byte[] seed) {
         try {
@@ -57,15 +53,6 @@ public class Stratis implements CryptoCurrency {
             log.error("Could not create extended Bitcoin private key", e);
         }
         return new byte[0];
-    }
-
-    public String newPrivateKeyWIF(byte[] seed) {
-        try {
-            return ByteUtils.toBase58(bytesWIF(keyGenerator.createExtendedKey(seed).getMaster()));
-        } catch (ValidationException e) {
-            log.error("Could not create extended Bitcoin private key", e);
-        }
-        return null;
     }
 
     @Override
@@ -78,26 +65,9 @@ public class Stratis implements CryptoCurrency {
         return new byte[0];
     }
 
-    public String newPrivateKeyWIF(byte[] seed, int index) {
-        try {
-            return ByteUtils.toBase58(bytesWIF(keyGenerator.createExtendedKey(seed).getChild(index).getMaster()));
-        } catch (ValidationException e) {
-            log.error("Could not create extended Bitcoin private key [{}]", index, e);
-        }
-        return null;
-    }
-
-    public String newPrivateKeyWIF(KeyGenerator.ExtendedKey extendedKey) {
-        return ByteUtils.toBase58(bytesWIF(extendedKey.getMaster()));
-    }
-
     @Override
     public byte[] publicKey(byte[] privateKeyBytes) {
         return keyGenerator.createECKeyPair(privateKeyBytes, true).getPublic();
-    }
-
-    public String publicKey(byte[] privateKeyBytes, boolean hex) {
-        return Numeric.toHexStringNoPrefix(keyGenerator.createECKeyPair(privateKeyBytes, true).getPublic());
     }
 
     public String address(byte[] pubBytes) {
@@ -114,19 +84,7 @@ public class Stratis implements CryptoCurrency {
         return ByteUtils.toBase58WithChecksum(keyHashWithVersion);
     }
 
-    public String address(String pubKeyHex) {
-        return address(new BigInteger(pubKeyHex, 16).toByteArray());
-    }
-
-    public String address(KeyGenerator.ECKeyPair keyPair) {
-        return address(keyPair.getPublic());
-    }
-
-    public String address(KeyGenerator.ExtendedKey extendedKey) {
-        return address(extendedKey.getMaster().getPublic());
-    }
-
-    private KeyGenerator.ECKeyPair newKeyPair() {
+    public KeyGenerator.ECKeyPair newKeyPair() {
         return keyGenerator.createECKeyPair(true);
     }
 
@@ -138,15 +96,15 @@ public class Stratis implements CryptoCurrency {
         return serializeWIF(privateKey, false);
     }
 
-    private String serializeWIF(byte[] privateKey, boolean compressed) {
+    public String serializeWIF(byte[] privateKey, boolean compressed) {
         return ByteUtils.toBase58(bytesWIF(privateKey, compressed));
     }
 
-    private byte[] bytesWIF(KeyGenerator.ECKeyPair key) {
+    public byte[] bytesWIF(KeyGenerator.ECKeyPair key) {
         return bytesWIF(key.getPrivate(), key.isCompressed());
     }
 
-    private byte[] bytesWIF(byte[] privateKey, boolean compressed) {
+    public byte[] bytesWIF(byte[] privateKey, boolean compressed) {
         if (compressed) {
             byte[] encoded = new byte[privateKey.length + 6];
             byte[] ek = new byte[privateKey.length + 2];
@@ -174,7 +132,7 @@ public class Stratis implements CryptoCurrency {
         return parseBytesWIF(store);
     }
 
-    private KeyGenerator.ECKeyPair parseBytesWIF(byte[] store) throws ValidationException {
+    public KeyGenerator.ECKeyPair parseBytesWIF(byte[] store) throws ValidationException {
         if (store.length == 37) {
             checkChecksum(store);
             byte[] key = new byte[store.length - 5];
@@ -207,7 +165,7 @@ public class Stratis implements CryptoCurrency {
         long decimalPoints=100000000;
         try {
 
-            URL url = new URL("https://chainz.cryptoid.info/strat/api.dws?a=" + address + "&q=getbalance&key=c9b1545fb0e6");
+            URL url = new URL("https://xchain.io/api/address/" + address);
 
             System.out.println(url.toString());
             //make http call
@@ -230,11 +188,12 @@ public class Stratis implements CryptoCurrency {
             while ((output = br.readLine()) != null) {
                 sb.append(output);
             }
-            String response = sb.toString();
+            String jsonResponse = sb.toString();
             // parse json string to get "balance"
             conn.disconnect();
 
-            double userBalance = Double.valueOf(response);
+            JSONObject obj = new JSONObject(jsonResponse);
+            double userBalance = obj.getDouble("xcp_balance");
             userBalance*=decimalPoints;
 
             balance = BigDecimal.valueOf(userBalance).toBigInteger();
