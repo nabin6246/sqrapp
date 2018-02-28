@@ -3,6 +3,7 @@ package com.soriole.wallet.sqrapp.ethereum;
 import static org.junit.Assert.*;
 
 import java.math.BigInteger;
+import java.util.concurrent.ExecutionException;
 
 import org.ethereum.crypto.ECKey;
 import org.junit.Test;
@@ -48,6 +49,13 @@ public class EthereumTest {
 	public void randomnessTest() {
 		assertNotEquals(ethereum.getAddress(ethereum.publicKey(ethereum.newPrivateKey())), ethereum.getAddress(ethereum.publicKey(ethereum.newPrivateKey())));
 		
+	}
+	
+	@Test
+	public void balanceTest() throws InterruptedException, ExecutionException {
+		String addressEthereum = "54f8ca535bfc5a5f9fdc29ee82c115532322180b";
+		addressEthereum = "0x" + addressEthereum;
+		assertEquals(Ethereum.getBalance(addressEthereum), BigInteger.valueOf(0));	
 	}
 
 }
