@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-	compile 'org.ethereum:ethereumj-core:1.5.+'
+	  compile 'org.ethereum:ethereumj-core:1.5.+'
     compile 'org.bitcoinj:bitcoinj-core:0.14.5'
     compile ('org.web3j:core:3.2.0')
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -23,5 +23,7 @@ dependencies {
     compile group: 'org.whispersystems', name: 'curve25519-java', version: '0.2.3'
     compile group: 'com.wavesplatform', name: 'wavesj', version: '0.2'
     compile group: 'org.json', name: 'json', version: '20171018'
+    // https://mvnrepository.com/artifact/javax.json/javax.json-api
+	  compile group: 'javax.json', name: 'javax.json-api', version: '1.0-b01'
 
 }

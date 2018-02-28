@@ -6,11 +6,18 @@ import com.soriole.wallet.lib.exceptions.ValidationException;
 import com.soriole.wallet.sqrapp.CryptoCurrency;
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.web3j.utils.Numeric;
 
+import javax.net.ssl.HttpsURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.security.SecureRandom;
 
 public class Dash implements CryptoCurrency {
@@ -18,7 +25,7 @@ public class Dash implements CryptoCurrency {
     public static final X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
     public static final String SEED_PREFIX = "Dash seed";
 
-    private byte networkVersion = 0x4c;
+    private byte networkVersion = 0x00;
     private byte privateKeyPrefix = (byte) 0xcc;
 
     private SecureRandom random = new SecureRandom();
@@ -196,5 +203,50 @@ public class Dash implements CryptoCurrency {
             }
         }
     }
+
+    BigInteger getBalance(String address) {
+        BigInteger balance = null;
+        long decimalPoints=100000000;
+        try {
+
+            URL url = new URL("https://chainz.cryptoid.info/dash/api.dws?a=" + address + "&q=getbalance&key=c9b1545fb0e6");
+
+            System.out.println(url.toString());
+            //make http call
+            HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+            conn.setRequestProperty("User-Agent","application/json");
+            conn.connect();
+
+            // make sure the response is success
+            if (conn.getResponseCode() != 200) {
+                System.err.println("Response error. HTTP error code: "+conn.getResponseCode());
+                throw new RuntimeException("Failed : HTTP error code : "
+                        + conn.getResponseCode());
+            }
+
+            //read the response and cast it to string (json string)
+            BufferedReader br = new BufferedReader(new InputStreamReader(
+                    (conn.getInputStream())));
+            String output;
+            StringBuilder sb = new StringBuilder();
+            while ((output = br.readLine()) != null) {
+                sb.append(output);
+            }
+            String response = sb.toString();
+            // parse json string to get "balance"
+            conn.disconnect();
+
+            double userBalance = Double.valueOf(response);
+            userBalance*=decimalPoints;
+
+            balance = BigDecimal.valueOf(userBalance).toBigInteger();
+            System.out.println(balance);
+
+        } catch (Exception e) {
+            System.out.println("Error getting balance");
+        }
+        return balance;
+    }
+
 
 }

@@ -69,4 +69,10 @@ public class StratisTest {
         assertEquals(address, computedAddress);
     }
 
+    @Test
+    public void testBalance(){
+        String address= "SejupM1aYpdCRpspq2iLPbEM6nLErRdyK1";
+        assertEquals(BigInteger.ZERO,stratis.getBalance(address));
+    }
+
 }
