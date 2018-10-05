@@ -159,7 +159,7 @@ public class KeyGenerator {
         if (hasPrivate) {
             key = new ECKeyPair(new BigInteger(1, pubOrPriv), true);
         } else {
-            key = new ECKeyPair(pubOrPriv, true, true);
+            key = new ECKeyPair(pubOrPriv, true);
         }
         return new ExtendedKey(key, chainCode, depth, parent, sequence);
     }
@@ -447,33 +447,20 @@ public class KeyGenerator {
             this.compressed = compressed;
         }
 
-        public ECKeyPair(byte[] privateKeyBytes, boolean compressed) throws ValidationException {
-            this(privateKeyBytes, compressed, false);
-        }
-
-        public ECKeyPair(byte[] pubOrPrivateKeyBytes, boolean compressed, boolean pubOnly) throws ValidationException {
+        public ECKeyPair(byte[] p, boolean compressed) throws ValidationException {
+            if (p.length != 32) {
+                throw new ValidationException("Invalid private key");
+            }
+            this.privateKey = new BigInteger(1, p).mod(CURVE.getN());
             this.compressed = compressed;
-            /* If public key bytes are available only */
-            if(pubOnly) {
-                this.privateKey = null;
-                if (compressed) {
-                    this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(pubOrPrivateKeyBytes, 0, pubOrPrivateKeyBytes.length));
-                } else {
-                    this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(pubOrPrivateKeyBytes, 0, pubOrPrivateKeyBytes.length));
-                }
-            }else{ /* If private key bytes are available */
-                if (pubOrPrivateKeyBytes.length != 32) {
-                    throw new ValidationException("Invalid private key");
-                }
-                this.privateKey = new BigInteger(1, pubOrPrivateKeyBytes).mod(CURVE.getN());
-                ECPoint point = CURVE.getG().multiply(privateKey);
-                if (compressed) {
-                    byte[] encoded = point.getEncoded(true);
-                    this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(encoded, 0, encoded.length));
-                } else {
-                    byte[] encoded = point.getEncoded(false);
-                    this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(encoded, 0, encoded.length));
-                }
+
+            ECPoint point = CURVE.getG().multiply(privateKey);
+            if (compressed) {
+                byte[] encoded = point.getEncoded(true);
+                this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(encoded, 0, encoded.length));
+            } else {
+                byte[] encoded = point.getEncoded(false);
+                this.publicKey = new BigInteger(1, java.util.Arrays.copyOfRange(encoded, 0, encoded.length));
             }
         }
 
@@ -554,7 +541,7 @@ public class KeyGenerator {
         }
 
         public byte[] getPublic() {
-            return this.publicKey.toByteArray();
+            return publicKey.toByteArray();
         }
 
         public byte[] getAddress() {

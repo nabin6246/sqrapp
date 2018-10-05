@@ -21,7 +21,6 @@ import java.lang.management.ThreadMXBean;
 import java.security.*;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class BitcoinExtendedKeyTest {
@@ -112,29 +111,6 @@ public class BitcoinExtendedKeyTest {
                 assertTrue(eK.serialize(true).equals(derivedTest.getString("private")));
                 assertTrue(eP.serialize(true).equals(derivedTest.getString("public")));
             }
-        }
-    }
-
-    @Test
-    public void testSerialization() throws IOException, JSONException, ValidationException {
-        JSONArray tests = readObjectArray("wallets/BitcoinWalletBIP32.json");
-        for (int i = 0; i < tests.length(); ++i) {
-            JSONObject test = tests.getJSONObject(i);
-
-            X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
-            String BITCOIN_SEED = "Bitcoin seed";
-            KeyGenerator keyGenerator = new KeyGenerator(curve, BITCOIN_SEED);
-
-            KeyGenerator.ExtendedKey ekPrivate = keyGenerator.createExtendedKey(ByteUtils.fromHex(test.getString("seed")));
-            KeyGenerator.ExtendedKey ekPublic = ekPrivate.getReadOnly();
-
-            final String privSerialized = ekPrivate.serialize(true);
-            assertTrue(privSerialized.equals(test.get("private")));
-            assertEquals(privSerialized, keyGenerator.parseExtendedKey(privSerialized).serialize(true));
-
-            final String pubSerialized = ekPublic.serialize(true);
-            assertTrue(pubSerialized.equals(test.get("public")));
-            assertEquals(pubSerialized, keyGenerator.parseExtendedKey(pubSerialized).serialize(true));
         }
     }
 
