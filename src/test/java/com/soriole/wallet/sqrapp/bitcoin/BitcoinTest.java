@@ -5,9 +5,12 @@ import com.soriole.wallet.lib.KeyGenerator;
 import com.soriole.wallet.lib.exceptions.ValidationException;
 import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Test;
+import org.web3j.crypto.Credentials;
 
 import java.math.BigInteger;
+import java.security.Security;
 
 import static org.junit.Assert.assertEquals;
 
@@ -15,6 +18,9 @@ public class BitcoinTest {
     private Bitcoin instance;
     KeyGenerator keyGenerator;
 
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
     public BitcoinTest() {
         instance = new Bitcoin();
         X9ECParameters curve = SECNamedCurves.getByName("secp256k1");
@@ -49,5 +55,24 @@ public class BitcoinTest {
         String computedAddress = instance.address(pubBytes);
         System.out.println(computedAddress);
         assertEquals(address, computedAddress);
+    }
+    @Test
+    public void testECKeyPairCompatibilityWithWeb3j() throws ValidationException {
+        // First Create a EC key pair instance from the Keygenerator library
+        KeyGenerator keyGenerator = new KeyGenerator(SECNamedCurves.getByName("secp256k1"), "nothing");
+        KeyGenerator.ExtendedKey key = keyGenerator.createExtendedKey();
+        KeyGenerator.ECKeyPair key1 = key.getKey(1);
+        key1.setCompressed(false);
+
+        // Now get the private key and the public key from the EC key pair.
+        BigInteger privateKey1 = key1.getPrivateKey();
+        BigInteger publicKey1 = key1.getPublicKey();
+
+        // Use the Web3 credentials class to load the private key and generate public key
+        Credentials credentials = Credentials.create(privateKey1.toString(16));
+        BigInteger publicKey2=credentials.getEcKeyPair().getPublicKey();
+
+        // Now compare the public keys. They should be same.
+        assertEquals(publicKey1,publicKey2);
     }
 }
