@@ -1,0 +1,7 @@
+## Sample for the gradle.properties file
+## This content is required only for publishing builds to artifactory, not for local builds.
+## gradle.properties file is included in the gitignore.
+
+artifactory_user="your user name here without quotes"
+artifactory_password="Your hashed password here without quotes"
+artifactory_contextUrl=https://artifactory.sireto.com
